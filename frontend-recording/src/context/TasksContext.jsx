@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { parseTaskDate } from '../lib/dates'
 
 const TasksContext = createContext(null)
 
@@ -66,10 +67,10 @@ export function TasksProvider({ children }) {
     end.setHours(23, 59, 59, 999)
     return tasks
       .filter((t) => {
-        const d = new Date(t.fecha_vencimiento)
+        const d = parseTaskDate(t.fecha_vencimiento)
         return d >= start && d <= end
       })
-      .sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento))
+      .sort((a, b) => parseTaskDate(a.fecha_vencimiento) - parseTaskDate(b.fecha_vencimiento))
   }, [tasks])
 
   async function toggleComplete(task) {

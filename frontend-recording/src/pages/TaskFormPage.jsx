@@ -3,10 +3,11 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { useAuth } from '../context/AuthContext'
 import { useTasks } from '../context/TasksContext'
+import { parseTaskDate } from '../lib/dates'
 
 function splitDateTime(iso) {
   if (!iso) return { date: '', time: '' }
-  const d = new Date(iso)
+  const d = parseTaskDate(iso)
   const pad = (n) => String(n).padStart(2, '0')
   return {
     date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,

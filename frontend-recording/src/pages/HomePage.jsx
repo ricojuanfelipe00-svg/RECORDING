@@ -5,6 +5,7 @@ import { TaskCard } from '../components/TaskCard'
 import { useAuth } from '../context/AuthContext'
 import { useTasks } from '../context/TasksContext'
 import { AlertsBanner, useDueNotifications } from '../hooks/useDueNotifications'
+import { parseTaskDate } from '../lib/dates'
 
 function todayLabel() {
   const text = new Date().toLocaleDateString('es-CO', {
@@ -30,7 +31,7 @@ export default function HomePage() {
   const firstName = user?.nombre?.split(' ')[0] || 'Usuario'
   const upcoming = [...tasks]
     .filter((t) => t.estado !== 'Completada')
-    .sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento))
+    .sort((a, b) => parseTaskDate(a.fecha_vencimiento) - parseTaskDate(b.fecha_vencimiento))
     .slice(0, 4)
 
   return (

@@ -4,6 +4,7 @@ import { AppShell } from '../components/AppShell'
 import { TaskCard } from '../components/TaskCard'
 import { useAuth } from '../context/AuthContext'
 import { useTasks } from '../context/TasksContext'
+import { parseTaskDate } from '../lib/dates'
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
@@ -36,14 +37,14 @@ export default function CalendarPage() {
 
   const taskDays = useMemo(() => {
     const map = new Set()
-    tasks.forEach((t) => map.add(toKey(new Date(t.fecha_vencimiento))))
+    tasks.forEach((t) => map.add(toKey(parseTaskDate(t.fecha_vencimiento))))
     return map
   }, [tasks])
 
   const dayTasks = useMemo(() => {
     return tasks
-      .filter((t) => sameDay(new Date(t.fecha_vencimiento), selected))
-      .sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento))
+      .filter((t) => sameDay(parseTaskDate(t.fecha_vencimiento), selected))
+      .sort((a, b) => parseTaskDate(a.fecha_vencimiento) - parseTaskDate(b.fecha_vencimiento))
   }, [tasks, selected])
 
   const cells = useMemo(() => {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
+import { parseTaskDate } from '../lib/dates'
 
 const NOTIFIED_KEY = 'recuerdame_notified_ids'
 const ALERTS_KEY = 'recuerdame_alerts_v1'
@@ -61,7 +62,7 @@ export function useDueNotifications(enabled) {
               id,
               type: 'due',
               title: `${item.titulo} vence pronto`,
-              body: `Programado para ${new Date(item.fecha_vencimiento).toLocaleString('es-CO')}`,
+              body: `Programado para ${parseTaskDate(item.fecha_vencimiento).toLocaleString('es-CO')}`,
               createdAt: Date.now(),
               unread: true,
             })
@@ -77,7 +78,7 @@ export function useDueNotifications(enabled) {
           saveNotified(notified.current)
           if (granted) {
             new Notification('Recuérdame', {
-              body: `${item.titulo} — ${new Date(item.fecha_vencimiento).toLocaleString('es-CO')}`,
+              body: `${item.titulo} — ${parseTaskDate(item.fecha_vencimiento).toLocaleString('es-CO')}`,
               tag: `recuerdame-${id}`,
             })
           }
@@ -116,7 +117,7 @@ export function AlertsBanner() {
       <ul className="mt-1 space-y-0.5 text-orange-700/90">
         {alertas.slice(0, 2).map((a) => (
           <li key={a.id_recordatorio}>
-            {a.titulo} · {new Date(a.fecha_vencimiento).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}
+            {a.titulo} · {parseTaskDate(a.fecha_vencimiento).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}
           </li>
         ))}
       </ul>

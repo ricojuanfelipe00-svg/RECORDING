@@ -1,3 +1,5 @@
+import { parseTaskDate } from '../lib/dates'
+
 const CATEGORY_STYLES = {
   Trabajo: 'bg-indigo-50 text-indigo-600',
   Personal: 'bg-emerald-50 text-emerald-600',
@@ -11,7 +13,7 @@ const PRIORITY_DOT = {
 }
 
 export function formatTaskWhen(iso) {
-  const d = new Date(iso)
+  const d = parseTaskDate(iso)
   const now = new Date()
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const startThat = new Date(d.getFullYear(), d.getMonth(), d.getDate())
@@ -25,7 +27,7 @@ export function formatTaskWhen(iso) {
 }
 
 export function formatLongDate(iso) {
-  const d = new Date(iso)
+  const d = parseTaskDate(iso)
   const text = d.toLocaleDateString('es-CO', {
     weekday: 'long',
     day: 'numeric',
@@ -36,7 +38,7 @@ export function formatLongDate(iso) {
 }
 
 export function formatTime(iso) {
-  return new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return parseTaskDate(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
 export function progressForEstado(estado) {
