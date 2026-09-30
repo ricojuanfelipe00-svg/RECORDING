@@ -1,6 +1,6 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
-const { pool } = require('../config/db');
+const { pool, toMysqlDateTime } = require('../config/db');
 const { authRequired } = require('../middleware/auth');
 
 const router = express.Router();
@@ -103,7 +103,7 @@ router.post(
   body('fecha_vencimiento').notEmpty().withMessage('La fecha y hora son requeridas'),
   body('prioridad').optional().isIn(PRIORIDADES),
   body('estado').optional().isIn(ESTADOS),
-  body('id_categoria').optional({ nullable: true }).isInt(),
+  body('id_categoria').optional({ nullable: true, values: 'falsy' }).isInt().toInt(),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -119,8 +119,10 @@ router.post(
       id_categoria = null,
     } = req.body;
 
-    const fecha = new Date(fecha_vencimiento);
-    if (Number.isNaN(fecha.getTime())) {
+    let fechaMysql;
+    try {
+      fechaMysql = toMysqlDateTime(fecha_vencimiento);
+    } catch {
       return res.status(400).json({ message: 'Fecha de vencimiento inválida' });
     }
 
@@ -144,7 +146,7 @@ router.post(
         {
           titulo,
           descripcion,
-          fecha_vencimiento: fecha,
+          fecha_vencimiento: fechaMysql,
           prioridad,
           estado,
           id_usuario: req.user.id_usuario,
@@ -163,7 +165,10 @@ router.post(
       return res.status(201).json({ recordatorio: rows[0] });
     } catch (error) {
       console.error('Error creando recordatorio:', error);
-      return res.status(500).json({ message: 'Error al crear recordatorio' });
+      return res.status(500).json({
+        message: 'Error al crear recordatorio',
+        code: error.code || undefined,
+      });
     }
   }
 );
@@ -195,8 +200,9 @@ router.put(
 
       let fecha = null;
       if (fecha_vencimiento !== undefined) {
-        fecha = new Date(fecha_vencimiento);
-        if (Number.isNaN(fecha.getTime())) {
+        try {
+          fecha = toMysqlDateTime(fecha_vencimiento);
+        } catch {
           return res.status(400).json({ message: 'Fecha de vencimiento inválida' });
         }
       }

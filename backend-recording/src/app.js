@@ -34,26 +34,6 @@ app.use(
 );
 app.use(express.json());
 
-let dbReady = null;
-function ensureDatabase() {
-  if (!dbReady) {
-    dbReady = initDatabase().catch((error) => {
-      dbReady = null;
-      throw error;
-    });
-  }
-  return dbReady;
-}
-
-app.use(async (_req, _res, next) => {
-  try {
-    await ensureDatabase();
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
 app.get('/', (_req, res) => {
   res.json({
     status: 'ok',
@@ -72,13 +52,40 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'recording-api' });
 });
 
+let dbReady = null;
+function ensureDatabase() {
+  if (!dbReady) {
+    dbReady = initDatabase().catch((error) => {
+      dbReady = null;
+      throw error;
+    });
+  }
+  return dbReady;
+}
+
+app.use(async (_req, _res, next) => {
+  try {
+    await ensureDatabase();
+    next();
+  } catch (error) {
+    console.error('Error de base de datos:', error.message);
+    return _res.status(503).json({
+      message:
+        'No se pudo conectar a la base de datos. Revisa las variables MYSQL_ADDON_* en Vercel.',
+      detail: process.env.NODE_ENV === 'production' ? undefined : error.message,
+    });
+  }
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/categorias', categoriasRoutes);
 app.use('/api/recordatorios', recordatoriosRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
-  res.status(500).json({ message: 'Error interno del servidor' });
+  res.status(500).json({
+    message: err.message || 'Error interno del servidor',
+  });
 });
 
 module.exports = app;
