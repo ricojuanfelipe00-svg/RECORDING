@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { useAuth } from '../context/AuthContext'
 import { useTasks } from '../context/TasksContext'
-import { parseTaskDate } from '../lib/dates'
+import { parseTaskDate, toLocalDateKey, SAME_DAY_REMINDER_MESSAGE } from '../lib/dates'
 
 function splitDateTime(iso) {
   if (!iso) return { date: '', time: '' }
@@ -58,6 +58,10 @@ export default function TaskFormPage() {
     setError('')
     if (!titulo.trim() || !date || !time) {
       setError('Título, fecha y hora son obligatorios')
+      return
+    }
+    if (date === toLocalDateKey(new Date())) {
+      setError(SAME_DAY_REMINDER_MESSAGE)
       return
     }
     setSaving(true)
@@ -156,6 +160,11 @@ export default function TaskFormPage() {
               <input
                 type="date"
                 required
+                min={(() => {
+                  const d = new Date()
+                  d.setDate(d.getDate() + 1)
+                  return toLocalDateKey(d)
+                })()}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full rounded-xl border border-line bg-surface px-3 py-3 text-sm outline-none"

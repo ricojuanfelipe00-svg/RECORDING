@@ -9,6 +9,25 @@ router.use(authRequired);
 
 const PRIORIDADES = ['Baja', 'Media', 'Alta'];
 const ESTADOS = ['Pendiente', 'En Proceso', 'Completada'];
+const SAME_DAY_MESSAGE =
+  'No se puede hacer el recordatorio para el mismo día. Elige una fecha a partir de mañana.';
+
+function toBogotaDateKey(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+function isSameDayInBogota(fechaValue) {
+  const selected = toBogotaDateKey(fechaValue);
+  const today = toBogotaDateKey(new Date());
+  return Boolean(selected && today && selected === today);
+}
 
 router.get(
   '/',
@@ -126,6 +145,10 @@ router.post(
       return res.status(400).json({ message: 'Fecha de vencimiento inválida' });
     }
 
+    if (isSameDayInBogota(fecha_vencimiento)) {
+      return res.status(400).json({ message: SAME_DAY_MESSAGE });
+    }
+
     try {
       if (id_categoria) {
         const [cat] = await pool.query(
@@ -204,6 +227,9 @@ router.put(
           fecha = toMysqlDateTime(fecha_vencimiento);
         } catch {
           return res.status(400).json({ message: 'Fecha de vencimiento inválida' });
+        }
+        if (isSameDayInBogota(fecha_vencimiento)) {
+          return res.status(400).json({ message: SAME_DAY_MESSAGE });
         }
       }
 
