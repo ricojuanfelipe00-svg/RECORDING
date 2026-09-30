@@ -97,6 +97,28 @@ router.get('/proximos', async (req, res) => {
   }
 });
 
+// Envía al correo del usuario los recordatorios próximos aún no notificados.
+router.post('/notificar-email', async (req, res) => {
+  try {
+    const { sendPendingReminderEmails } = require('../services/notifyReminders');
+    const { mailConfigured } = require('../services/mail');
+    const result = await sendPendingReminderEmails({
+      idUsuario: req.user.id_usuario,
+      hours: 24,
+    });
+    return res.json({
+      message: result.sent
+        ? `Se enviaron ${result.sent} correo(s) a tu cuenta registrada`
+        : result.skipped || 'No hay recordatorios nuevos para notificar por correo',
+      mailConfigured: mailConfigured(),
+      ...result,
+    });
+  } catch (error) {
+    console.error('Error notificando por correo:', error);
+    return res.status(500).json({ message: 'Error al enviar notificación por correo' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -251,13 +273,15 @@ router.put(
           fecha_vencimiento = COALESCE(:fecha_vencimiento, fecha_vencimiento),
           prioridad = COALESCE(:prioridad, prioridad),
           estado = COALESCE(:estado, estado),
-          id_categoria = IF(:categoria_set = 1, :id_categoria, id_categoria)
+          id_categoria = IF(:categoria_set = 1, :id_categoria, id_categoria),
+          notificado_email = IF(:fecha_reset = 1, 0, notificado_email)
          WHERE id_recordatorio = :id AND id_usuario = :id_usuario`,
         {
           titulo: titulo ?? null,
           descripcion: descripcion ?? null,
           descripcion_set: descripcion !== undefined ? 1 : 0,
           fecha_vencimiento: fecha,
+          fecha_reset: fecha ? 1 : 0,
           prioridad: prioridad ?? null,
           estado: estado ?? null,
           id_categoria: id_categoria === undefined ? null : id_categoria,

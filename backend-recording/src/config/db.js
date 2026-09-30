@@ -89,6 +89,7 @@ async function ensureSchema(connection) {
       estado ENUM('Pendiente', 'En Proceso', 'Completada') DEFAULT 'Pendiente',
       id_usuario INT NOT NULL,
       id_categoria INT,
+      notificado_email TINYINT(1) NOT NULL DEFAULT 0,
       creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
       FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria) ON DELETE SET NULL
@@ -117,6 +118,20 @@ async function initDatabase() {
 
   if (readEnv('AUTO_MIGRATE') === '1') {
     await withConnection((connection) => ensureSchema(connection));
+  }
+
+  // Columna para no reenviar el mismo recordatorio por correo.
+  try {
+    await withConnection(async (connection) => {
+      await connection.query(`
+        ALTER TABLE recordatorios
+        ADD COLUMN notificado_email TINYINT(1) NOT NULL DEFAULT 0
+      `);
+    });
+  } catch (error) {
+    if (error.code !== 'ER_DUP_FIELDNAME') {
+      console.warn('No se pudo asegurar columna notificado_email:', error.message);
+    }
   }
 
   console.log('Base de datos lista.');

@@ -83,6 +83,13 @@ export function useDueNotifications(enabled) {
             })
           }
         })
+
+        // También notifica al correo registrado del usuario.
+        try {
+          await api.notifyDueEmails()
+        } catch {
+          // SMTP no configurado o sin pendientes
+        }
       } catch {
         // offline / api down
       }

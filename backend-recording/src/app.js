@@ -5,6 +5,7 @@ const { initDatabase, mysqlEnvStatus } = require('./config/db');
 const authRoutes = require('./routes/auth');
 const categoriasRoutes = require('./routes/categorias');
 const recordatoriosRoutes = require('./routes/recordatorios');
+const cronRoutes = require('./routes/cron');
 
 const app = express();
 
@@ -99,6 +100,7 @@ app.use(async (_req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/categorias', categoriasRoutes);
 app.use('/api/recordatorios', recordatoriosRoutes);
+app.use('/api/cron', cronRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

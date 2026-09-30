@@ -114,6 +114,7 @@ export const api = {
   },
 
   getProximos: () => request('/recordatorios/proximos').then((d) => d.recordatorios),
+  notifyDueEmails: () => request('/recordatorios/notificar-email', { method: 'POST' }),
   createRecordatorio: (payload) =>
     request('/recordatorios', { method: 'POST', body: JSON.stringify(payload) }),
   updateRecordatorio: (id, payload) =>
