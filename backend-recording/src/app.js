@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { initDatabase } = require('./config/db');
+const { initDatabase, mysqlEnvStatus } = require('./config/db');
 const authRoutes = require('./routes/auth');
 const categoriasRoutes = require('./routes/categorias');
 const recordatoriosRoutes = require('./routes/recordatorios');
@@ -52,6 +52,21 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'recording-api' });
 });
 
+app.get('/api/health/db', async (_req, res) => {
+  try {
+    await initDatabase();
+    return res.json({ status: 'ok', database: 'connected', env: mysqlEnvStatus() });
+  } catch (error) {
+    return res.status(503).json({
+      status: 'error',
+      database: 'disconnected',
+      message: error.message,
+      code: error.code || undefined,
+      env: mysqlEnvStatus(),
+    });
+  }
+});
+
 let dbReady = null;
 function ensureDatabase() {
   if (!dbReady) {
@@ -63,16 +78,18 @@ function ensureDatabase() {
   return dbReady;
 }
 
-app.use(async (_req, _res, next) => {
+app.use(async (_req, res, next) => {
   try {
     await ensureDatabase();
     next();
   } catch (error) {
-    console.error('Error de base de datos:', error.message);
-    return _res.status(503).json({
+    console.error('Error de base de datos:', error.message, error.code);
+    return res.status(503).json({
       message:
         'No se pudo conectar a la base de datos. Revisa las variables MYSQL_ADDON_* en Vercel.',
-      detail: process.env.NODE_ENV === 'production' ? undefined : error.message,
+      detail: error.message,
+      code: error.code || undefined,
+      env: mysqlEnvStatus(),
     });
   }
 });
