@@ -8,19 +8,26 @@ const recordatoriosRoutes = require('./routes/recordatorios');
 
 const app = express();
 
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+const defaultOrigins = [
+  'http://localhost:5173',
+  'https://recording-eight.vercel.app',
+];
+
+const fromEnv = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const allowedOrigins = [...new Set([...defaultOrigins, ...fromEnv])];
+
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
         callback(null, true);
         return;
       }
-      callback(new Error(`CORS bloqueado para origen: ${origin}`));
+      callback(null, false);
     },
     credentials: true,
   })
