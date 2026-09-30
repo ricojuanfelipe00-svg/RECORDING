@@ -84,9 +84,11 @@ app.use(async (_req, res, next) => {
     next();
   } catch (error) {
     console.error('Error de base de datos:', error.message, error.code);
+    const limitReached = error.code === 'ER_USER_LIMIT_REACHED';
     return res.status(503).json({
-      message:
-        'No se pudo conectar a la base de datos. Revisa las variables MYSQL_ADDON_* en Vercel.',
+      message: limitReached
+        ? 'MySQL en Clever Cloud alcanzó el límite de 5 conexiones. Espera 1-2 minutos o reinicia el addon MySQL y vuelve a intentar.'
+        : 'No se pudo conectar a la base de datos. Revisa las variables MYSQL_ADDON_* en Vercel.',
       detail: error.message,
       code: error.code || undefined,
       env: mysqlEnvStatus(),

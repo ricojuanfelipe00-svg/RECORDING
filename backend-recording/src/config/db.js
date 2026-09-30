@@ -22,40 +22,40 @@ function mysqlEnvStatus() {
   };
 }
 
-function createPool() {
+function getConnectionConfig() {
   const missing = missingMysqlEnv();
   if (missing.length) {
     throw new Error(`Faltan variables en Vercel: ${missing.join(', ')}`);
   }
 
-  // Clever Cloud suele exigir SSL desde hosts externos (Vercel).
+  // Clever Cloud: máximo ~5 conexiones. En Vercel no usamos pool persistente.
   const sslDisabled = readEnv('MYSQL_SSL') === '0';
 
-  return mysql.createPool({
+  return {
     host: readEnv('MYSQL_ADDON_HOST'),
     user: readEnv('MYSQL_ADDON_USER'),
     password: readEnv('MYSQL_ADDON_PASSWORD'),
     database: readEnv('MYSQL_ADDON_DB'),
     port: Number(readEnv('MYSQL_ADDON_PORT')) || 3306,
-    waitForConnections: true,
-    connectionLimit: Number(readEnv('MYSQL_CONNECTION_LIMIT')) || 1,
-    queueTimeout: 10000,
-    connectTimeout: 20000,
-    enableKeepAlive: true,
+    connectTimeout: 15000,
     namedPlaceholders: true,
     timezone: 'Z',
     dateStrings: true,
     ssl: sslDisabled ? undefined : { rejectUnauthorized: false },
-  });
+  };
 }
 
-let poolInstance = null;
-
-function getPool() {
-  if (!poolInstance) {
-    poolInstance = createPool();
+async function withConnection(fn) {
+  const connection = await mysql.createConnection(getConnectionConfig());
+  try {
+    return await fn(connection);
+  } finally {
+    try {
+      await connection.end();
+    } catch {
+      // ignore close errors
+    }
   }
-  return poolInstance;
 }
 
 async function ensureSchema(connection) {
@@ -100,14 +100,12 @@ async function pingWithRetry(retries = 2) {
   let lastError;
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
-      await getPool().query('SELECT 1 AS ok');
+      await withConnection((connection) => connection.query('SELECT 1 AS ok'));
       return;
     } catch (error) {
       lastError = error;
-      // Recrear pool si la conexión quedó en mal estado.
-      poolInstance = null;
       if (attempt < retries) {
-        await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+        await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
       }
     }
   }
@@ -117,14 +115,8 @@ async function pingWithRetry(retries = 2) {
 async function initDatabase() {
   await pingWithRetry(2);
 
-  // Las tablas ya deberían existir; solo crearlas si se pide explícitamente.
   if (readEnv('AUTO_MIGRATE') === '1') {
-    const connection = await getPool().getConnection();
-    try {
-      await ensureSchema(connection);
-    } finally {
-      connection.release();
-    }
+    await withConnection((connection) => ensureSchema(connection));
   }
 
   console.log('Base de datos lista.');
@@ -139,17 +131,30 @@ function toMysqlDateTime(value) {
   return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
-// Proxy para que `const { pool } = require(...)` siga funcionando con lazy-connect.
+// Compatible con `const { pool } = require(...)` — cada query abre y cierra conexión.
 const pool = {
-  query: (...args) => getPool().query(...args),
-  execute: (...args) => getPool().execute(...args),
-  getConnection: (...args) => getPool().getConnection(...args),
-  end: (...args) => (poolInstance ? poolInstance.end(...args) : Promise.resolve()),
+  query: (...args) => withConnection((connection) => connection.query(...args)),
+  execute: (...args) => withConnection((connection) => connection.execute(...args)),
+  getConnection: async () => {
+    const connection = await mysql.createConnection(getConnectionConfig());
+    const originalRelease = connection.release?.bind(connection);
+    connection.release = async () => {
+      if (originalRelease) {
+        try {
+          originalRelease();
+        } catch {
+          // ignore
+        }
+      }
+      await connection.end().catch(() => {});
+    };
+    return connection;
+  },
 };
 
 module.exports = {
   pool,
-  getPool,
+  withConnection,
   initDatabase,
   toMysqlDateTime,
   mysqlEnvStatus,
