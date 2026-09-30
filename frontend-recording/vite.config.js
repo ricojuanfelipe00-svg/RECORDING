@@ -32,7 +32,9 @@ export default defineConfig({
         clientsClaim: true,
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith('/api/') ||
+              url.hostname.includes('recording-backend-recording.vercel.app'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
