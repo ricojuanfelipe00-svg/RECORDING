@@ -1,37 +1,38 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import appLogo from '/favicon.svg'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import PWABadge from './PWABadge.jsx'
-import './App.css'
+import { AuthProvider } from './context/AuthContext'
+import { TasksProvider } from './context/TasksContext'
+import AlertsPage from './pages/AlertsPage'
+import CalendarPage from './pages/CalendarPage'
+import HomePage from './pages/HomePage'
+import LoginPage from './pages/LoginPage'
+import ProfilePage from './pages/ProfilePage'
+import RegisterPage from './pages/RegisterPage'
+import TaskDetailPage from './pages/TaskDetailPage'
+import TaskFormPage from './pages/TaskFormPage'
+import TasksPage from './pages/TasksPage'
 
-function App() {
-  const [count, setCount] = useState(0)
-
+export default function App() {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={appLogo} className="logo" alt="frontend-recording logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>frontend-recording</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-      <PWABadge />
-    </>
+    <AuthProvider>
+      <TasksProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/tareas" element={<TasksPage />} />
+            <Route path="/tareas/:id" element={<TaskDetailPage />} />
+            <Route path="/nuevo" element={<TaskFormPage />} />
+            <Route path="/editar/:id" element={<TaskFormPage />} />
+            <Route path="/calendario" element={<CalendarPage />} />
+            <Route path="/alertas" element={<AlertsPage />} />
+            <Route path="/perfil" element={<ProfilePage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          <PWABadge />
+        </BrowserRouter>
+      </TasksProvider>
+    </AuthProvider>
   )
 }
-
-export default App
